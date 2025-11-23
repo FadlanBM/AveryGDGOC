@@ -12,6 +12,9 @@ export function setupSwagger(app: INestApplication) {
   SwaggerModule.setup('api-docs', app, document, {
     swaggerOptions: {
       persistAuthorization: false,
+      filter: true,
+      displayRequestDuration: true,
     },
+    customSiteTitle: 'API Docs GDGOC UGM',
   });
 }
