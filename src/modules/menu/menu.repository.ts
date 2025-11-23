@@ -149,7 +149,6 @@ export class MenuRepository {
     sortColumn?: string,
     sort?: 'asc' | 'desc',
   ): Promise<PaginatedMenuResponse> {
-    console.log(min_price, max_price);
 
     const whereConditions: any = { 't.deleted_at': null };
 

@@ -4,8 +4,10 @@ import { WelcomeController } from './welcome.controller';
 import { ModulesModule } from './modules/modules.module';
 
 @Module({
-  imports: [CommonModule, ModulesModule],
+  imports: [
+    CommonModule,
+    ModulesModule,
+  ],
   controllers: [WelcomeController],
-  providers: [],
 })
 export class AppModule {}

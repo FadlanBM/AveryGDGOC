@@ -7,8 +7,7 @@ export class WelcomeController {
 
   @Get('/')
   // @ApiOperation({ summary: 'Welcome to our API' })
-  // @ApiSuccessResponse()
-  // @ApiInvalidInputResponse()
+  @HttpCode(200)
   index() {
     return {
       status: 200,

@@ -121,9 +121,7 @@ export class MenuController {
     @Query('sort') sort?: string,
   ): Promise<ResponseData<PaginatedMenuResponse>> {
     try {
-      // Parse sort parameter in format "column:direction" (e.g., "price:asc")
       const parts = sort?.split(':');
-
       const sortColumn = parts?.[0];
       const sortDirection = parts?.[1];
 
