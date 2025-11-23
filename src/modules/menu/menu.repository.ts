@@ -70,9 +70,9 @@ export class MenuRepository {
     return {
       ...menu,
       ingredients:
-        typeof menu.ingredients === 'string'
+        menu.ingredients && typeof menu.ingredients === 'string'
           ? menu.ingredients.split('|')
-          : menu.ingredients,
+          : menu.ingredients || [],
     } as MenuResponse;
   }
 
@@ -96,15 +96,22 @@ export class MenuRepository {
       replacements,
     });
 
+    // Handle null or undefined result
+    if (!result || (Array.isArray(result) && result.length === 0)) {
+      return [];
+    }
+
     const menus = Array.isArray(result) ? result : [result];
 
-    return menus.map((menu: any) => ({
-      ...menu,
-      ingredients:
-        typeof menu.ingredients === 'string'
-          ? menu.ingredients.split('|')
-          : menu.ingredients,
-    })) as MenuResponse[];
+    return menus
+      .filter((menu) => menu !== null && menu !== undefined)
+      .map((menu: any) => ({
+        ...menu,
+        ingredients:
+          menu.ingredients && typeof menu.ingredients === 'string'
+            ? menu.ingredients.split('|')
+            : menu.ingredients || [],
+      })) as MenuResponse[];
   }
 
   async updateMenuByID(menu: RepositoryMenuInputUpdate, id: string) {
@@ -133,14 +140,16 @@ export class MenuRepository {
 
   async getMenuByCategory(
     category?: string,
+    name?: string,
     min_price?: number,
     max_price?: number,
     max_cal?: number,
     page: number = 1,
     per_page: number = 10,
+    sortColumn?: string,
     sort?: 'asc' | 'desc',
   ): Promise<PaginatedMenuResponse> {
-    console.log(sort);
+    console.log(min_price, max_price);
 
     const whereConditions: any = { 't.deleted_at': null };
 
@@ -166,13 +175,31 @@ export class MenuRepository {
     let finalQuery = selectQuery;
     let finalReplacements = [...replacements];
 
+    // Handle price filtering with three scenarios
     if (min_price !== undefined && max_price !== undefined) {
+      // Both min and max price provided - use BETWEEN
       if (finalQuery.includes('WHERE')) {
         finalQuery += ` AND t.price BETWEEN ? AND ?`;
       } else {
         finalQuery += ` WHERE t.price BETWEEN ? AND ?`;
       }
       finalReplacements.push(min_price, max_price);
+    } else if (min_price !== undefined) {
+      // Only min price provided - use >=
+      if (finalQuery.includes('WHERE')) {
+        finalQuery += ` AND t.price >= ?`;
+      } else {
+        finalQuery += ` WHERE t.price >= ?`;
+      }
+      finalReplacements.push(min_price);
+    } else if (max_price !== undefined) {
+      // Only max price provided - use <=
+      if (finalQuery.includes('WHERE')) {
+        finalQuery += ` AND t.price <= ?`;
+      } else {
+        finalQuery += ` WHERE t.price <= ?`;
+      }
+      finalReplacements.push(max_price);
     }
 
     if (max_cal) {
@@ -182,6 +209,16 @@ export class MenuRepository {
         finalQuery += ` WHERE t.calories <= ?`;
       }
       finalReplacements.push(max_cal);
+    }
+
+    // Add name filter using LIKE for partial matching
+    if (name) {
+      if (finalQuery.includes('WHERE')) {
+        finalQuery += ` AND LOWER(t.name) LIKE LOWER(?)`;
+      } else {
+        finalQuery += ` WHERE LOWER(t.name) LIKE LOWER(?)`;
+      }
+      finalReplacements.push(`%${name}%`);
     }
 
     // Get total count before applying pagination and sorting
@@ -196,9 +233,13 @@ export class MenuRepository {
       ? countResult[0].total
       : countResult.total;
 
-    // Add sorting
-    if (sort && (sort === 'asc' || sort === 'desc')) {
-      finalQuery += ` ORDER BY t.price ${sort.toUpperCase()}`;
+    // Add sorting with column validation
+    if (sortColumn && sort && (sort === 'asc' || sort === 'desc')) {
+      // Whitelist allowed columns to prevent SQL injection
+      const allowedColumns = ['name', 'category', 'calories', 'price'];
+      if (allowedColumns.includes(sortColumn)) {
+        finalQuery += ` ORDER BY t.${sortColumn} ${sort.toUpperCase()}`;
+      }
     }
 
     // Add pagination
@@ -210,15 +251,28 @@ export class MenuRepository {
       replacements: finalReplacements,
     });
 
+    // Handle null or undefined result
+    if (!result || (Array.isArray(result) && result.length === 0)) {
+      return {
+        data: [],
+        total: 0,
+        page,
+        per_page,
+        total_pages: 0,
+      };
+    }
+
     const menus = Array.isArray(result) ? result : [result];
 
-    const data = menus.map((menu: any) => ({
-      ...menu,
-      ingredients:
-        typeof menu.ingredients === 'string'
-          ? menu.ingredients.split('|')
-          : menu.ingredients,
-    })) as MenuResponse[];
+    const data = menus
+      .filter((menu) => menu !== null && menu !== undefined)
+      .map((menu: any) => ({
+        ...menu,
+        ingredients:
+          menu.ingredients && typeof menu.ingredients === 'string'
+            ? menu.ingredients.split('|')
+            : menu.ingredients || [],
+      })) as MenuResponse[];
 
     return {
       data,

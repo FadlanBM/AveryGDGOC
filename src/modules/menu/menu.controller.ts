@@ -36,6 +36,34 @@ export class MenuController {
     }
   }
 
+  @Get('/search')
+  async getMenuByName(
+    @Query('q') name?: string,
+    @Query('page') page?: string,
+    @Query('per_page') per_page?: string,
+  ): Promise<ResponseData<PaginatedMenuResponse>> {
+    try {
+      const result = await this.menuService.GetMenuByCategory(
+        undefined, // category
+        name, // name
+        undefined, // min_price
+        undefined, // max_price
+        undefined, // max_cal
+        page ? Number(page) : undefined, // page
+        per_page ? Number(per_page) : undefined, // per_page
+        undefined, // sortColumn
+        undefined, // sort
+      );
+      return {
+        status: true,
+        message: 'Data menu berdasarkan filter berhasil diambil',
+        data: result,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   @Get('/:id')
   async getMenuById(
     @Param('id') id: string,
@@ -84,6 +112,7 @@ export class MenuController {
   @Get('/')
   async getMenuByCategory(
     @Query('category') category?: string,
+    @Query('q') name?: string,
     @Query('min_price') min_price?: string,
     @Query('max_price') max_price?: string,
     @Query('max_cal') max_cal?: string,
@@ -92,21 +121,28 @@ export class MenuController {
     @Query('sort') sort?: string,
   ): Promise<ResponseData<PaginatedMenuResponse>> {
     try {
-      // Validate sort parameter
-      console.log(sort);
+      // Parse sort parameter in format "column:direction" (e.g., "price:asc")
+      const parts = sort?.split(':');
+
+      const sortColumn = parts?.[0];
+      const sortDirection = parts?.[1];
 
       const validSort =
-        sort && (sort === 'asc' || sort === 'desc')
-          ? (sort as 'asc' | 'desc')
+        parts &&
+        parts.length === 2 &&
+        (sortDirection === 'asc' || sortDirection === 'desc')
+          ? (sortDirection as 'asc' | 'desc')
           : undefined;
 
       const result = await this.menuService.GetMenuByCategory(
         category,
+        name,
         min_price ? Number(min_price) : undefined,
         max_price ? Number(max_price) : undefined,
         max_cal ? Number(max_cal) : undefined,
         page ? Number(page) : undefined,
         per_page ? Number(per_page) : undefined,
+        sortColumn,
         validSort,
       );
       return {

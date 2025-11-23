@@ -122,23 +122,25 @@ export class MenuService {
 
   async GetMenuByCategory(
     category?: string,
+    name?: string,
     min_price?: number,
     max_price?: number,
     max_cal?: number,
     page?: number,
     per_page?: number,
+    sortColumn?: string,
     sort?: 'asc' | 'desc',
   ): Promise<PaginatedMenuResponse> {
     try {
-      console.log(sort);
-
       const result = await this.menuRepository.getMenuByCategory(
         category,
+        name,
         min_price,
         max_price,
         max_cal,
         page,
         per_page,
+        sortColumn,
         sort,
       );
       return result;

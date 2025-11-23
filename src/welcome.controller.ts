@@ -12,7 +12,7 @@ export class WelcomeController {
   index() {
     return {
       status: 200,
-      message: 'Welcome to our API!',
+      message: 'Welcome to our API Avery GDGOC!',
       data: {
         timestamp: this.helperService.now(),
       },
