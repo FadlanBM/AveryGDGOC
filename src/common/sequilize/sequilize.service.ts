@@ -24,7 +24,7 @@ export class SequelizeService implements OnModuleInit {
       dialect: supabaseConfig.dialect,
       logging: appDebug ? (msg) => this.logger.info(msg) : false,
       pool: supabaseConfig.pool,
-      dialectOptions: supabaseConfig.dialectOptions,
+      dialectOptions: {},
     });
   }
 
