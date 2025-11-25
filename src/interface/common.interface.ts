@@ -1,7 +1,7 @@
 import { HttpStatus } from '@nestjs/common';
 
 export class ResponseData<T> {
-  status: boolean;
+  status?: boolean;
   message: string;
   metadata?: Metadata;
   data?: T;

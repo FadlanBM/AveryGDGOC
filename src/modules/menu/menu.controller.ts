@@ -93,7 +93,6 @@ export class MenuController {
     try {
       const data = await this.menuService.CreateMenu(request);
       return {
-        status: true,
         message: 'Pembuatan menu berhasil',
         data: data,
       };
