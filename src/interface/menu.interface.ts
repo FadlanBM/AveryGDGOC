@@ -1,5 +1,4 @@
 export class RepositoryMenuInput {
-  uuid: string;
   name: string;
   category: string;
   calories: number;
@@ -37,12 +36,15 @@ export class MenuRequest {
 }
 
 export class MenuResponse {
+  id: string;
   name: string;
   category: string;
   calories: number;
   price: number;
   ingredients: string | string[];
   description: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
 }
 
 export class PaginatedMenuResponse {

@@ -26,6 +26,7 @@ import {
 import {
   ApiInvalidInputResponse,
   ApiSuccessResponse,
+  ApiNotFoundResponse,
 } from 'src/swagger.response';
 
 @ApiTags('Menu')
@@ -130,7 +131,7 @@ export class MenuController {
     @Query('q') name?: string,
     @Query('page') page?: string,
     @Query('per_page') per_page?: string,
-  ): Promise<ResponseData<PaginatedMenuResponse>> {
+  ): Promise<ResponseData<MenuResponse[]>> {
     try {
       const result = await this.menuService.GetMenuByCategory(
         undefined, // category
@@ -144,7 +145,6 @@ export class MenuController {
         undefined, // sort
       );
       return {
-        status: true,
         message: 'Data menu berdasarkan filter berhasil diambil',
         data: result,
       };
@@ -165,13 +165,13 @@ export class MenuController {
   })
   @ApiSuccessResponse()
   @ApiInvalidInputResponse()
+  @ApiNotFoundResponse()
   async getMenuById(
     @Param('id') id: string,
   ): Promise<ResponseData<MenuResponse>> {
     try {
       const response = await this.menuService.GetBYIdMenu(id);
       return {
-        status: true,
         message: 'Data menu berhasil diambil',
         data: response,
       };
@@ -241,12 +241,12 @@ export class MenuController {
   async updateMenuById(
     @Param('id') id: string,
     @Body() request: RepositoryMenuInputUpdate,
-  ): Promise<ResponseData<object>> {
+  ): Promise<ResponseData<MenuResponse>> {
     try {
-      await this.menuService.UpdateByIDMenu(request, id);
+      const data = await this.menuService.UpdateByIDMenu(request, id);
       return {
-        status: true,
         message: 'Pembaruan menu berhasil',
+        data: data,
       };
     } catch (error) {
       throw error;
@@ -355,7 +355,7 @@ export class MenuController {
     @Query('page') page?: string,
     @Query('per_page') per_page?: string,
     @Query('sort') sort?: string,
-  ): Promise<ResponseData<PaginatedMenuResponse>> {
+  ): Promise<ResponseData<MenuResponse[]>> {
     try {
       const parts = sort?.split(':');
       const sortColumn = parts?.[0];
@@ -380,7 +380,6 @@ export class MenuController {
         validSort,
       );
       return {
-        status: true,
         message: 'Data menu berdasarkan filter berhasil diambil',
         data: result,
       };

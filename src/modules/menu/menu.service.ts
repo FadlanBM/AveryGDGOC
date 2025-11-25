@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { MenuRepository } from './menu.repository';
 import { ValidationService } from 'src/common/validation.service';
 import { MenuValidation } from './menu.validation';
@@ -29,12 +34,7 @@ export class MenuService {
           menuRequest,
         );
 
-      const id = this.generateMenuId();
-
-      const response = await this.menuRepository.createMenu({
-        uuid: id,
-        ...validatedMenu,
-      });
+      const response = await this.menuRepository.createMenu(validatedMenu);
 
       return response;
     } catch (error) {
@@ -72,8 +72,23 @@ export class MenuService {
   async GetBYIdMenu(id: string): Promise<MenuResponse> {
     try {
       const menu = await this.menuRepository.getMenuBYID(id);
+
+      if (!menu || Object.keys(menu).length === 0) {
+        throw new NotFoundException({
+          message: 'Menu tidak ditemukan dengan filter yang diberikan',
+        });
+      }
       return menu;
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException({
+          status: false,
+          message: 'Gagal mengambil menu',
+          errors: Array.isArray(error.message)
+            ? error.message
+            : [error.message],
+        });
+      }
       throw new BadRequestException({
         status: false,
         message: 'Gagal mengambil menu',
@@ -82,7 +97,10 @@ export class MenuService {
     }
   }
 
-  async UpdateByIDMenu(menuRequest: MenuUpdateRequest, id: string) {
+  async UpdateByIDMenu(
+    menuRequest: MenuUpdateRequest,
+    id: string,
+  ): Promise<MenuResponse> {
     try {
       const validatedMenu =
         this.validationService.validateWithZodError<MenuUpdateRequest>(
@@ -90,7 +108,11 @@ export class MenuService {
           menuRequest,
         );
 
-      await this.menuRepository.updateMenuByID(validatedMenu, id);
+      const response = await this.menuRepository.updateMenuByID(
+        validatedMenu,
+        id,
+      );
+      return response;
     } catch (error) {
       if (error instanceof ZodError) {
         throw new BadRequestException({
@@ -104,7 +126,7 @@ export class MenuService {
       }
       throw new BadRequestException({
         status: false,
-        message: 'Gagal membuat menu',
+        message: 'Gagal mengupdate menu',
         errors: Array.isArray(error.message) ? error.message : [error.message],
       });
     }
@@ -132,7 +154,7 @@ export class MenuService {
     per_page?: number,
     sortColumn?: string,
     sort?: 'asc' | 'desc',
-  ): Promise<PaginatedMenuResponse> {
+  ): Promise<MenuResponse[]> {
     try {
       const result = await this.menuRepository.getMenuByCategory(
         category,
@@ -145,10 +167,21 @@ export class MenuService {
         sortColumn,
         sort,
       );
+
+      if (!result || result.length === 0) {
+        throw new NotFoundException({
+          message: 'Menu tidak ditemukan dengan filter yang diberikan',
+        });
+      }
+
       return result;
     } catch (error) {
+      // Jika sudah NotFoundException, throw langsung
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
       throw new BadRequestException({
-        status: false,
         message: 'Gagal mengambil menu berdasarkan filter',
         errors: Array.isArray(error.message) ? error.message : [error.message],
       });

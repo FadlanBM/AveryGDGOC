@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { HelperService } from 'src/common/helper/helper.service';
 import { QueryService } from 'src/common/sequilize/query.service';
 import { SequelizeService } from 'src/common/sequilize/sequilize.service';
@@ -20,9 +20,8 @@ export class MenuRepository {
 
   async createMenu(menu: RepositoryMenuInput): Promise<MenuResponse> {
     try {
-      const { query: selectQuery, values: replacements } =
-        this.generateQuery.InsertQuery('public.menu', {
-          id: menu.uuid,
+      const { query: insertQuery, values: replacements } =
+        this.generateQuery.InsertQueryGetId('public.menu', {
           name: menu.name,
           category: menu.category,
           calories: menu.calories,
@@ -31,12 +30,31 @@ export class MenuRepository {
           description: menu.description,
         });
 
-      await this.sequelizeService.select(selectQuery, {
+      const result: any = await this.sequelizeService.insert(insertQuery, {
         replacements,
       });
 
-      const { uuid, ...menuResponse } = menu;
-      return menuResponse;
+      const insertedId =
+        Array.isArray(result) &&
+        result.length > 0 &&
+        Array.isArray(result[0]) &&
+        result[0].length > 0
+          ? result[0][0].id
+          : null;
+
+      if (!insertedId) {
+        throw new Error('Failed to get inserted menu ID');
+      }
+
+      return {
+        id: insertedId,
+        name: menu.name,
+        category: menu.category,
+        calories: menu.calories,
+        price: menu.price,
+        ingredients: menu.ingredients,
+        description: menu.description,
+      };
     } catch (error) {
       throw new Error(error.parent?.message || 'Failed to create menu');
     }
@@ -54,6 +72,8 @@ export class MenuRepository {
           't.price',
           't.ingredients',
           't.description',
+          't.created_at',
+          't.updated_at',
         ],
         where: { id, 't.deleted_at': null },
         limit: 1,
@@ -67,12 +87,13 @@ export class MenuRepository {
     const menu: any = Array.isArray(result) ? result[0] : result;
 
     if (!menu) {
-      throw new Error(`Menu with id ${id} not found`);
+      throw new NotFoundException(`Menu with id ${id} not found`);
     }
 
-    // Transform ingredients string to array
     return {
       ...menu,
+      price: Number(menu.price),
+      calories: Number(menu.calories),
       ingredients:
         menu.ingredients && typeof menu.ingredients === 'string'
           ? menu.ingredients.split('|')
@@ -92,6 +113,8 @@ export class MenuRepository {
           't.price',
           't.ingredients',
           't.description',
+          't.created_at',
+          't.updated_at',
         ],
         where: { 't.deleted_at': null },
       });
@@ -111,6 +134,8 @@ export class MenuRepository {
       .filter((menu) => menu !== null && menu !== undefined)
       .map((menu: any) => ({
         ...menu,
+        price: Number(menu.price),
+        calories: Number(menu.calories),
         ingredients:
           menu.ingredients && typeof menu.ingredients === 'string'
             ? menu.ingredients.split('|')
@@ -118,9 +143,12 @@ export class MenuRepository {
       })) as MenuResponse[];
   }
 
-  async updateMenuByID(menu: RepositoryMenuInputUpdate, id: string) {
+  async updateMenuByID(
+    menu: RepositoryMenuInputUpdate,
+    id: string,
+  ): Promise<MenuResponse> {
     try {
-      const { query: selectQuery, values: replacements } =
+      const { query: updateQuery, values: replacements } =
         this.generateQuery.UpdateQuery(
           'public.menu',
           {
@@ -131,14 +159,18 @@ export class MenuRepository {
             ingredients: menu.ingredients?.join('|'),
             description: menu.description,
           },
-          { id, 't.deleted_at': null },
+          { id, deleted_at: null },
         );
 
-      await this.sequelizeService.update(selectQuery, {
+      await this.sequelizeService.update(updateQuery, {
         replacements,
       });
+
+      // Fetch dan return data yang sudah diupdate
+      const updatedMenu = await this.getMenuBYID(id);
+      return updatedMenu;
     } catch (error) {
-      throw new Error(error.parent?.message || 'Failed to create menu');
+      throw new Error(error.parent?.message || 'Failed to update menu');
     }
   }
 
@@ -152,7 +184,7 @@ export class MenuRepository {
     per_page: number = 10,
     sortColumn?: string,
     sort?: 'asc' | 'desc',
-  ): Promise<PaginatedMenuResponse> {
+  ): Promise<MenuResponse[]> {
     const whereConditions: any = { 't.deleted_at': null };
 
     if (category) {
@@ -170,6 +202,8 @@ export class MenuRepository {
           't.price',
           't.ingredients',
           't.description',
+          't.created_at',
+          't.updated_at',
         ],
         where: whereConditions,
       });
@@ -177,7 +211,6 @@ export class MenuRepository {
     let finalQuery = selectQuery;
     let finalReplacements = [...replacements];
 
-    // Handle price filtering with three scenarios
     if (min_price !== undefined && max_price !== undefined) {
       // Both min and max price provided - use BETWEEN
       if (finalQuery.includes('WHERE')) {
@@ -255,13 +288,7 @@ export class MenuRepository {
 
     // Handle null or undefined result
     if (!result || (Array.isArray(result) && result.length === 0)) {
-      return {
-        data: [],
-        total: 0,
-        page,
-        per_page,
-        total_pages: 0,
-      };
+      return [];
     }
 
     const menus = Array.isArray(result) ? result : [result];
@@ -270,19 +297,15 @@ export class MenuRepository {
       .filter((menu) => menu !== null && menu !== undefined)
       .map((menu: any) => ({
         ...menu,
+        price: Number(menu.price),
+        calories: Number(menu.calories),
         ingredients:
           menu.ingredients && typeof menu.ingredients === 'string'
             ? menu.ingredients.split('|')
             : menu.ingredients || [],
       })) as MenuResponse[];
 
-    return {
-      data,
-      total: Number(total),
-      page,
-      per_page,
-      total_pages: Math.ceil(Number(total) / per_page),
-    };
+    return data;
   }
 
   async deleteMenuByID(id: string) {

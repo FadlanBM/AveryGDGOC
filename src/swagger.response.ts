@@ -22,6 +22,12 @@ export function ApiForbidenResponse() {
   );
 }
 
+export function ApiNotFoundResponse() {
+  return applyDecorators(
+    ApiResponse({ status: 404, description: 'Error: Resource not found.' }),
+  );
+}
+
 export function ApiQueryParams(
   params: {
     name: string;
