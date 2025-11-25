@@ -89,7 +89,7 @@ export class MenuController {
   @ApiInvalidInputResponse()
   async registerMenu(
     @Body() request: MenuRequest,
-  ): Promise<ResponseData<MenuRequest>> {
+  ): Promise<ResponseData<MenuResponse>> {
     try {
       const data = await this.menuService.CreateMenu(request);
       return {

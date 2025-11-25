@@ -21,7 +21,7 @@ export class MenuService {
     private readonly menuRepository: MenuRepository,
   ) {}
 
-  async CreateMenu(menuRequest: MenuRequest): Promise<MenuRequest> {
+  async CreateMenu(menuRequest: MenuRequest): Promise<MenuResponse> {
     try {
       const validatedMenu =
         this.validationService.validateWithZodError<MenuRequest>(

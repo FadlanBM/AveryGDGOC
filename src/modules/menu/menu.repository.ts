@@ -18,7 +18,7 @@ export class MenuRepository {
     private readonly helperService: HelperService,
   ) {}
 
-  async createMenu(menu: RepositoryMenuInput): Promise<MenuRequest> {
+  async createMenu(menu: RepositoryMenuInput): Promise<MenuResponse> {
     try {
       const { query: selectQuery, values: replacements } =
         this.generateQuery.InsertQuery('public.menu', {
@@ -34,7 +34,9 @@ export class MenuRepository {
       await this.sequelizeService.select(selectQuery, {
         replacements,
       });
-      return menu;
+
+      const { uuid, ...menuResponse } = menu;
+      return menuResponse;
     } catch (error) {
       throw new Error(error.parent?.message || 'Failed to create menu');
     }

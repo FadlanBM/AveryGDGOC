@@ -37,7 +37,6 @@ export class MenuRequest {
 }
 
 export class MenuResponse {
-  id: string;
   name: string;
   category: string;
   calories: number;
