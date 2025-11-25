@@ -89,12 +89,13 @@ export class MenuController {
   @ApiInvalidInputResponse()
   async registerMenu(
     @Body() request: MenuRequest,
-  ): Promise<ResponseData<object>> {
+  ): Promise<ResponseData<MenuRequest>> {
     try {
-      await this.menuService.CreateMenu(request);
+      const data = await this.menuService.CreateMenu(request);
       return {
         status: true,
         message: 'Pembuatan menu berhasil',
+        data: data,
       };
     } catch (error) {
       throw error;

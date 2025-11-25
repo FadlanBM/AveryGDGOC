@@ -3,6 +3,7 @@ import { HelperService } from 'src/common/helper/helper.service';
 import { QueryService } from 'src/common/sequilize/query.service';
 import { SequelizeService } from 'src/common/sequilize/sequilize.service';
 import {
+  MenuRequest,
   MenuResponse,
   PaginatedMenuResponse,
   RepositoryMenuInput,
@@ -17,7 +18,7 @@ export class MenuRepository {
     private readonly helperService: HelperService,
   ) {}
 
-  async createMenu(menu: RepositoryMenuInput) {
+  async createMenu(menu: RepositoryMenuInput): Promise<MenuRequest> {
     try {
       const { query: selectQuery, values: replacements } =
         this.generateQuery.InsertQuery('public.menu', {
@@ -33,6 +34,7 @@ export class MenuRepository {
       await this.sequelizeService.select(selectQuery, {
         replacements,
       });
+      return menu;
     } catch (error) {
       throw new Error(error.parent?.message || 'Failed to create menu');
     }
@@ -149,7 +151,6 @@ export class MenuRepository {
     sortColumn?: string,
     sort?: 'asc' | 'desc',
   ): Promise<PaginatedMenuResponse> {
-
     const whereConditions: any = { 't.deleted_at': null };
 
     if (category) {

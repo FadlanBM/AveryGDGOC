@@ -21,7 +21,7 @@ export class MenuService {
     private readonly menuRepository: MenuRepository,
   ) {}
 
-  async CreateMenu(menuRequest: MenuRequest) {
+  async CreateMenu(menuRequest: MenuRequest): Promise<MenuRequest> {
     try {
       const validatedMenu =
         this.validationService.validateWithZodError<MenuRequest>(
@@ -31,10 +31,12 @@ export class MenuService {
 
       const id = this.generateMenuId();
 
-      await this.menuRepository.createMenu({
+      const response = await this.menuRepository.createMenu({
         uuid: id,
         ...validatedMenu,
       });
+
+      return response;
     } catch (error) {
       if (error instanceof ZodError) {
         throw new BadRequestException({
