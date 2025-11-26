@@ -13,6 +13,7 @@ import {
   MenuResponse,
   PaginatedMenuResponse,
 } from 'src/interface/menu.interface';
+import { Pagination } from 'src/interface/common.interface';
 
 type MenuRequest = z.infer<typeof MenuValidation.CREATE_MENU>;
 type MenuUpdateRequest = z.infer<typeof MenuValidation.UPDATE_MENU>;
@@ -144,6 +145,52 @@ export class MenuService {
     }
   }
 
+  async GetCountCategory(): Promise<object> {
+    try {
+      const result = await this.menuRepository.getCountCategory();
+
+      if (!result || Object.keys(result).length === 0) {
+        throw new NotFoundException({
+          message: 'Category tidak ditemukan dengan filter yang diberikan',
+        });
+      }
+
+      return result;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      throw new BadRequestException({
+        message: 'Gagal mengambil Category berdasarkan filter',
+        errors: Array.isArray(error.message) ? error.message : [error.message],
+      });
+    }
+  }
+
+  async getDataByCategory(per_category: number): Promise<object> {
+    try {
+      const result = await this.menuRepository.getDataByID(per_category);
+
+      if (!result || Object.keys(result).length === 0) {
+        throw new NotFoundException({
+          message: 'Category tidak ditemukan dengan filter yang diberikan',
+        });
+      }
+
+      return result;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      throw new BadRequestException({
+        message: 'Gagal mengambil Category berdasarkan filter',
+        errors: Array.isArray(error.message) ? error.message : [error.message],
+      });
+    }
+  }
+
   async GetMenuByCategory(
     category?: string,
     name?: string,
@@ -154,9 +201,12 @@ export class MenuService {
     per_page?: number,
     sortColumn?: string,
     sort?: 'asc' | 'desc',
-  ): Promise<MenuResponse[]> {
+  ): Promise<{
+    data: MenuResponse[];
+    pagination: Pagination  ;
+  }> {
     try {
-      const result = await this.menuRepository.getMenuByCategory(
+      const response = await this.menuRepository.getMenuByCategory(
         category,
         name,
         min_price,
@@ -168,15 +218,14 @@ export class MenuService {
         sort,
       );
 
-      if (!result || result.length === 0) {
+      if (!response.data || response.data.length === 0) {
         throw new NotFoundException({
           message: 'Menu tidak ditemukan dengan filter yang diberikan',
         });
       }
 
-      return result;
+      return response;
     } catch (error) {
-      // Jika sudah NotFoundException, throw langsung
       if (error instanceof NotFoundException) {
         throw error;
       }

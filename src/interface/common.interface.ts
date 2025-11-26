@@ -5,7 +5,16 @@ export class ResponseData<T> {
   message: string;
   metadata?: Metadata;
   data?: T;
+  pagination?: Pagination;
   timestamp?: string;
+}
+
+export interface Pagination {
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+  next_page?: number | null;
 }
 
 interface Metadata {

@@ -102,6 +102,55 @@ export class MenuController {
     }
   }
 
+  @Get('/group-by-category')
+  @ApiOperation({
+    summary: 'Search menu by name',
+    description: 'Search menu items by name with pagination support',
+  })
+  @ApiQuery({
+    name: 'q',
+    required: false,
+    description: 'Search query for menu name',
+    example: 'nasi',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number (default: 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'per_page',
+    required: false,
+    description: 'Items per page (default: 10)',
+    example: 10,
+  })
+  @ApiSuccessResponse()
+  @ApiInvalidInputResponse()
+  async getByCategory(
+    @Query('mode') mode?: string,
+    @Query('per_category') per_category?: string,
+  ): Promise<ResponseData<object>> {
+    try {
+      if (mode === 'count') {
+        const result = await this.menuService.GetCountCategory();
+        return {
+          message: 'Data Category berdasarkan filter berhasil diambil',
+          data: result,
+        };
+      } else {
+        const totalCategory = Number(per_category);
+        const result = await this.menuService.getDataByCategory(totalCategory);
+        return {
+          message: 'Data Category berdasarkan filter berhasil diambil',
+          data: result,
+        };
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
   @Get('/search')
   @ApiOperation({
     summary: 'Search menu by name',
@@ -133,7 +182,7 @@ export class MenuController {
     @Query('per_page') per_page?: string,
   ): Promise<ResponseData<MenuResponse[]>> {
     try {
-      const result = await this.menuService.GetMenuByCategory(
+      const { data, pagination } = await this.menuService.GetMenuByCategory(
         undefined, // category
         name, // name
         undefined, // min_price
@@ -146,7 +195,8 @@ export class MenuController {
       );
       return {
         message: 'Data menu berdasarkan filter berhasil diambil',
-        data: result,
+        data: data,
+        pagination: pagination,
       };
     } catch (error) {
       throw error;
@@ -368,7 +418,7 @@ export class MenuController {
           ? (sortDirection as 'asc' | 'desc')
           : undefined;
 
-      const result = await this.menuService.GetMenuByCategory(
+      const { data, pagination } = await this.menuService.GetMenuByCategory(
         category,
         name,
         min_price ? Number(min_price) : undefined,
@@ -381,7 +431,8 @@ export class MenuController {
       );
       return {
         message: 'Data menu berdasarkan filter berhasil diambil',
-        data: result,
+        data,
+        pagination,
       };
     } catch (error) {
       throw error;

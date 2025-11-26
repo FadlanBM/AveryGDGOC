@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { HelperService } from 'src/common/helper/helper.service';
 import { QueryService } from 'src/common/sequilize/query.service';
 import { SequelizeService } from 'src/common/sequilize/sequilize.service';
+import { Pagination } from 'src/interface/common.interface';
 import {
   MenuRequest,
   MenuResponse,
@@ -184,7 +185,10 @@ export class MenuRepository {
     per_page: number = 10,
     sortColumn?: string,
     sort?: 'asc' | 'desc',
-  ): Promise<MenuResponse[]> {
+  ): Promise<{
+    data: MenuResponse[];
+    pagination: Pagination;
+  }> {
     const whereConditions: any = { 't.deleted_at': null };
 
     if (category) {
@@ -288,7 +292,16 @@ export class MenuRepository {
 
     // Handle null or undefined result
     if (!result || (Array.isArray(result) && result.length === 0)) {
-      return [];
+      return {
+        data: [],
+        pagination: {
+          total: 0,
+          page: 0,
+          per_page: 0,
+          total_pages: 0,
+          next_page: null,
+        },
+      };
     }
 
     const menus = Array.isArray(result) ? result : [result];
@@ -305,7 +318,16 @@ export class MenuRepository {
             : menu.ingredients || [],
       })) as MenuResponse[];
 
-    return data;
+    const totalPages = Math.ceil(Number(total) / per_page);
+    const pagination = {
+      total: Number(total),
+      page,
+      per_page,
+      total_pages: totalPages,
+      next_page: page < totalPages ? page + 1 : null,
+    };
+
+    return { data, pagination };
   }
 
   async deleteMenuByID(id: string) {
@@ -322,6 +344,118 @@ export class MenuRepository {
       });
     } catch (error) {
       throw new Error(error.parent?.message || 'Failed to create menu');
+    }
+  }
+
+  async getCountCategory(): Promise<object> {
+    const query = `
+      SELECT
+        t.category,
+        COUNT(*) as count
+      FROM public.menu t
+      WHERE t.deleted_at IS NULL
+      GROUP BY t.category
+      ORDER BY t.category ASC
+    `;
+
+    try {
+      const result: any = await this.sequelizeService.select(query, {
+        replacements: [],
+      });
+
+      if (!result || (Array.isArray(result) && result.length === 0)) {
+        return {};
+      }
+
+      const categoryCounts: { [key: string]: number } = {};
+
+      if (Array.isArray(result)) {
+        result.forEach((item: { category: string; count: string | number }) => {
+          categoryCounts[item.category] = parseInt(String(item.count));
+        });
+      } else {
+        categoryCounts[result.category] = parseInt(String(result.count));
+      }
+
+      return categoryCounts;
+    } catch (error: any) {
+      throw new Error(
+        error?.message ||
+          error?.parent?.message ||
+          'Failed to get category counts',
+      );
+    }
+  }
+
+  async getDataByID(limit_category: number): Promise<object> {
+    const query = `
+      SELECT
+        t.id,
+        t.name,
+        t.category,
+        t.calories,
+        t.price,
+        t.ingredients,
+        t.description,
+        t.created_at,
+        t.updated_at
+      FROM public.menu t
+      WHERE t.deleted_at IS NULL
+      ORDER BY t.category ASC, t.name ASC
+    `;
+
+    try {
+      const result: any = await this.sequelizeService.select(query, {
+        replacements: [],
+      });
+
+      if (!result || (Array.isArray(result) && result.length === 0)) {
+        return {};
+      }
+
+      const menusByCategory: { [key: string]: any[] } = {};
+      const menus = Array.isArray(result) ? result : [result];
+
+      menus.forEach((menu: any) => {
+        const category = menu.category;
+
+        // Create array for category if it doesn't exist
+        if (!menusByCategory[category]) {
+          menusByCategory[category] = [];
+        }
+
+        // Check if category limit is reached
+        if (menusByCategory[category].length >= limit_category) {
+          return; // Skip this menu if limit is reached for this category
+        }
+
+        // Transform menu data to MenuResponse format
+        const menuData = {
+          id: menu.id,
+          name: menu.name,
+          category: menu.category,
+          calories: Number(menu.calories),
+          price: Number(menu.price),
+          ingredients:
+            menu.ingredients && typeof menu.ingredients === 'string'
+              ? menu.ingredients.split('|')
+              : menu.ingredients || [],
+          description: menu.description,
+          created_at: menu.created_at,
+          updated_at: menu.updated_at,
+        };
+
+        // Add menu to its category array
+        menusByCategory[category].push(menuData);
+      });
+
+      return menusByCategory;
+    } catch (error: any) {
+      throw new Error(
+        error?.message ||
+          error?.parent?.message ||
+          'Failed to get menus by category',
+      );
     }
   }
 }
