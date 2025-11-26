@@ -80,6 +80,31 @@ export class MenuService {
     }
   }
 
+  async getRecommendationMenu(preferences: {
+    maxCalories?: number;
+    category?: string;
+    dietaryRestrictions?: string[];
+    mood?: string;
+  }): Promise<{
+    recommendations: any[];
+    reasoning: string;
+  }> {
+    try {
+      const menus = await this.menuRepository.getMenu();
+      const result = await this.geminiService.getMenuRecommendations(
+        menus,
+        preferences,
+      );
+      return result;
+    } catch (error) {
+      throw new BadRequestException({
+        status: false,
+        message: 'Gagal mengambil daftar menu',
+        errors: Array.isArray(error.message) ? error.message : [error.message],
+      });
+    }
+  }
+
   async GetBYIdMenu(id: string): Promise<MenuResponse> {
     try {
       const menu = await this.menuRepository.getMenuBYID(id);

@@ -268,6 +268,117 @@ export class MenuController {
     }
   }
 
+  @Get('/recommendations')
+  @ApiOperation({
+    summary: 'Get AI-powered menu recommendations',
+    description:
+      'Get personalized menu recommendations based on dietary preferences, calorie limits, category, and mood using AI',
+  })
+  @ApiQuery({
+    name: 'max_calories',
+    required: false,
+    description: 'Maximum calories limit for recommended menus',
+    example: 500,
+    schema: {
+      type: 'number',
+    },
+  })
+  @ApiQuery({
+    name: 'category',
+    required: false,
+    description: 'Filter recommendations by menu category',
+    example: 'Main Course',
+    schema: {
+      type: 'string',
+    },
+  })
+  @ApiQuery({
+    name: 'dietary_restrictions',
+    required: false,
+    description: 'Dietary restrictions or preferences (can be multiple)',
+    example: ['vegetarian', 'no nuts'],
+    schema: {
+      type: 'array',
+      items: {
+        type: 'string',
+      },
+    },
+  })
+  @ApiQuery({
+    name: 'mood',
+    required: false,
+    description: 'Current mood or preference for meal recommendation',
+    example: 'healthy',
+    schema: {
+      type: 'string',
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Menu recommendations retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Data menu berdasarkan filter berhasil diambil',
+        },
+        data: {
+          type: 'object',
+          properties: {
+            recommendations: {
+              type: 'array',
+              description: 'List of recommended menu items',
+              items: {
+                type: 'object',
+              },
+            },
+            reasoning: {
+              type: 'string',
+              description: 'AI reasoning behind the recommendations',
+              example: 'Based on your healthy mood and 500 calorie limit...',
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiInvalidInputResponse()
+  async getRecommendationMenu(
+    @Query('max_calories') max_calories?: number,
+    @Query('category') category?: string,
+    @Query('dietary_restrictions') dietary_restrictions?: string[],
+    @Query('mood') mood?: string,
+  ): Promise<
+    ResponseData<{
+      recommendations: any[];
+      reasoning: string;
+    }>
+  > {
+    try {
+      console.log('ler');
+
+      const pref: {
+        maxCalories?: number;
+        category?: string;
+        dietaryRestrictions?: string[];
+        mood?: string;
+      } = {
+        maxCalories: max_calories,
+        category: category,
+        dietaryRestrictions: dietary_restrictions,
+        mood: mood,
+      };
+      const data = await this.menuService.getRecommendationMenu(pref);
+      return {
+        message: 'Data menu berdasarkan filter AI berhasil diambil',
+        data,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   @Get('/:id')
   @ApiOperation({
     summary: 'Get menu by ID',
