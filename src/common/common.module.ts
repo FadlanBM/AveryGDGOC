@@ -13,6 +13,7 @@ import supabaseConfig from './config/supabase.config';
 import jwtConfig from './config/jwt.config';
 import { SequelizeService } from './sequilize/sequilize.service';
 import { QueryService } from './sequilize/query.service';
+import { GeminiService } from './gemini/gemini.service';
 
 @Global()
 @Module({
@@ -64,11 +65,18 @@ import { QueryService } from './sequilize/query.service';
     SequelizeService,
     HelperService,
     QueryService,
+    GeminiService,
     {
       provide: APP_FILTER,
       useClass: ErrorFilter,
     },
   ],
-  exports: [ValidationService, SequelizeService, HelperService, QueryService],
+  exports: [
+    ValidationService,
+    SequelizeService,
+    HelperService,
+    QueryService,
+    GeminiService,
+  ],
 })
 export class CommonModule {}

@@ -14,6 +14,7 @@ import {
   PaginatedMenuResponse,
 } from 'src/interface/menu.interface';
 import { Pagination } from 'src/interface/common.interface';
+import { GeminiService } from 'src/common/gemini/gemini.service';
 
 type MenuRequest = z.infer<typeof MenuValidation.CREATE_MENU>;
 type MenuUpdateRequest = z.infer<typeof MenuValidation.UPDATE_MENU>;
@@ -25,6 +26,7 @@ export class MenuService {
   constructor(
     private readonly validationService: ValidationService,
     private readonly menuRepository: MenuRepository,
+    private geminiService: GeminiService,
   ) {}
 
   async CreateMenu(menuRequest: MenuRequest): Promise<MenuResponse> {
@@ -34,6 +36,14 @@ export class MenuService {
           MenuValidation.CREATE_MENU,
           menuRequest,
         );
+      const description = await this.geminiService.generateMenuDescription(
+        validatedMenu.name,
+        validatedMenu.category,
+        validatedMenu.ingredients,
+        validatedMenu.calories,
+      );
+
+      validatedMenu.description = description;
 
       const response = await this.menuRepository.createMenu(validatedMenu);
 
@@ -203,7 +213,7 @@ export class MenuService {
     sort?: 'asc' | 'desc',
   ): Promise<{
     data: MenuResponse[];
-    pagination: Pagination  ;
+    pagination: Pagination;
   }> {
     try {
       const response = await this.menuRepository.getMenuByCategory(

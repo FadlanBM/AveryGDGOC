@@ -21,6 +21,7 @@ import {
   ApiOperation,
   ApiParam,
   ApiQuery,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import {
@@ -104,28 +105,92 @@ export class MenuController {
 
   @Get('/group-by-category')
   @ApiOperation({
-    summary: 'Search menu by name',
-    description: 'Search menu items by name with pagination support',
+    summary: 'Get menus grouped by category',
+    description:
+      'Retrieve menu items grouped by category with optional count mode or limit per category',
   })
   @ApiQuery({
-    name: 'q',
+    name: 'mode',
     required: false,
-    description: 'Search query for menu name',
-    example: 'nasi',
+    description:
+      'Mode: "count" to get category counts, empty to get menus grouped by category',
+    example: 'count',
+    schema: {
+      type: 'string',
+      enum: ['count', 'list'],
+    },
   })
   @ApiQuery({
-    name: 'page',
+    name: 'per_category',
     required: false,
-    description: 'Page number (default: 1)',
-    example: 1,
+    description: 'Limit number of menus per category (default: no limit)',
+    example: 3,
+    schema: {
+      type: 'number',
+      minimum: 1,
+    },
   })
-  @ApiQuery({
-    name: 'per_page',
-    required: false,
-    description: 'Items per page (default: 10)',
-    example: 10,
+  @ApiResponse({
+    status: 200,
+    description: 'Menus retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Data Category berdasarkan filter berhasil diambil',
+        },
+        data: {
+          oneOf: [
+            {
+              type: 'object',
+              description: 'When mode=count: Category counts',
+              example: {
+                drinks: 4,
+                food: 8,
+                dessert: 3,
+              },
+              additionalProperties: {
+                type: 'number',
+              },
+            },
+            {
+              type: 'object',
+              description: 'When mode is not set: Menus grouped by category',
+              example: {
+                drinks: [
+                  {
+                    id: '123e4567-e89b-12d3-a456-426614174000',
+                    name: 'Es Teh',
+                    category: 'drinks',
+                    calories: 50,
+                    price: 5000,
+                    ingredients: ['teh', 'gula', 'es'],
+                    description: 'Teh manis dingin',
+                    created_at: '2024-01-01T00:00:00.000Z',
+                    updated_at: '2024-01-01T00:00:00.000Z',
+                  },
+                ],
+                food: [
+                  {
+                    id: '456e7890-e89b-12d3-a456-426614174111',
+                    name: 'Nasi Goreng',
+                    category: 'food',
+                    calories: 350,
+                    price: 15000,
+                    ingredients: ['nasi', 'telur', 'kecap'],
+                    description: 'Nasi goreng spesial',
+                    created_at: '2024-01-01T00:00:00.000Z',
+                    updated_at: '2024-01-01T00:00:00.000Z',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    },
   })
-  @ApiSuccessResponse()
   @ApiInvalidInputResponse()
   async getByCategory(
     @Query('mode') mode?: string,
